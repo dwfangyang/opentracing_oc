@@ -122,7 +122,10 @@
     }
     if (payload != nil) {
         NSString *payloadJSON = [YUtil objectToJSONString:payload maxLength:[self.tracer maxPayloadJSONLength]];
-        fields[@"value"] = payloadJSON;
+        if( payloadJSON )
+        {
+            fields[@"value"] = payloadJSON;
+        }
     }
     [self _appendLog:[[YLog alloc] initWithTimestamp:timestamp fields:fields]];
 }
@@ -216,6 +219,7 @@
         @"operationname": self.operationName,
         @"starttime": @([self.startTime toMicros]),
         @"duration": @([finishTime toMicros]-[self.startTime toMicros]),
+        @"spanversion": @"1.0.0"
 //        @"attributes": attributes,
     } mutableCopy];
     if( logs.count )

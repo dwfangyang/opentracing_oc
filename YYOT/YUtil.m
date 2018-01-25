@@ -91,6 +91,6 @@
 
 @implementation NSDate (YSpan)
 - (int64_t)toMicros {
-    return (int64_t)([self timeIntervalSince1970] * USEC_PER_SEC);
+    return (int64_t)([self timeIntervalSince1970] * NSEC_PER_SEC);
 }
 @end
