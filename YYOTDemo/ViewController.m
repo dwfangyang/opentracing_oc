@@ -24,7 +24,7 @@
     id<OTSpan> span = [tracer startSpan:@"request" childOf:parentspan.context];
     NSMutableDictionary* carrier = [NSMutableDictionary new];
     [tracer inject:span.context format:OTFormatTextMap carrier:carrier];
-    [span logEvent:@"response" payload:[NSObject new]];
+    [span logEvent:@"response" payload:@{@"retcode":@"200"}];
     [span finish];
     [parentspan logEvent:@"query_complete" payload:@{@"main_thread":@([NSThread isMainThread])}];
     [parentspan logEvent:@"ui_update" payload:@{@"main_thread":@([NSThread isMainThread])}];

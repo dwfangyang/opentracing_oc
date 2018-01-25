@@ -121,10 +121,10 @@
         fields[@"event"] = eventName;
     }
     if (payload != nil) {
-        NSString *payloadJSON = [YUtil objectToJSONString:payload maxLength:[self.tracer maxPayloadJSONLength]];
-        if( payloadJSON )
+//        NSString *payloadJSON = [YUtil objectToJSONString:payload maxLength:[self.tracer maxPayloadJSONLength]];
+        if( [NSJSONSerialization isValidJSONObject:payload] )
         {
-            fields[@"value"] = payloadJSON;
+            fields[@"value"] = payload;
         }
     }
     [self _appendLog:[[YLog alloc] initWithTimestamp:timestamp fields:fields]];
