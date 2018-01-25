@@ -51,7 +51,7 @@ extern NSInteger const YBackgroundTaskError;
          flushIntervalSeconds:(NSUInteger)flushIntervalSeconds;
 
 
-#pragma mark - LightStep extensions and internal methods
+#pragma mark - extensions and internal methods
 
 /// The remote service base URL
 @property(nonatomic, strong, readonly) NSURL *baseURL;
@@ -79,10 +79,7 @@ extern NSInteger const YBackgroundTaskError;
 /// Record a span.
 - (void)_appendSpanJSON:(NSDictionary *)spanRecord;
 
-/// Flush any buffered data to the collector. Returns without blocking.
-///
-/// If non-nil, doneCallback will be invoked once the flush()completes.
-- (void)flush:(nullable void (^)(NSError *_Nullable error))doneCallback;
+- (void)Finish;
 
 @end
 

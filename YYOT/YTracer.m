@@ -6,6 +6,7 @@
 #import "YSpanContext.h"
 #import "YTracer.h"
 #import "YUtil.h"
+#import "HiidoSDK.h"
 
 static NSString *const LSDefaultBaseURLString = @"https://collector.lightstep.com:443/api/v0/reports";
 static const int LSDefaultFlushIntervalSeconds = 30;
@@ -20,14 +21,19 @@ NSString *const YErrorDomain = @"com.lightstep";
 
 @interface YTracer ()
 @property(nonatomic, strong) NSMutableArray<NSDictionary *> *pendingJSONSpans;
-@property(nonatomic, strong, readonly) NSDictionary<NSString *, NSString *> *tracerJSON;
+//@property(nonatomic, strong, readonly) NSDictionary<NSString *, NSString *> *tracerJSON;
 @property(nonatomic, strong, readonly) YClockState *clockState;
 
 @property(nonatomic, strong, readonly) dispatch_queue_t flushQueue;
 @property(nonatomic, strong) dispatch_source_t flushTimer;
 @property(nonatomic, strong) NSDate *lastFlush;
-@property(nonatomic) UInt64 runtimeGuid;
+@property(nonatomic) NSString* traceid;
 @property(nonatomic) UIBackgroundTaskIdentifier bgTaskId;
+
+/// Flush any buffered data to the collector. Returns without blocking.
+///
+/// If non-nil, doneCallback will be invoked once the flush()completes.
+- (void)flush:(nullable void (^)(NSError *_Nullable error))doneCallback;
 @end
 
 #pragma mark - Tracer implementation
@@ -51,16 +57,16 @@ NSString *const YErrorDomain = @"com.lightstep";
         _lastFlush = [NSDate date];
         _bgTaskId = UIBackgroundTaskInvalid;
         _baseURL = baseURL ?: [NSURL URLWithString:LSDefaultBaseURLString];
-        _tracerJSON = @{
-            @"guid": [YUtil hexGUID:_runtimeGuid],
-            @"attrs": [YUtil keyValueArrayFromDictionary:@{
-                @"lightstep.tracer_platform": @"ios",
-                @"lightstep.tracer_platform_version": [[UIDevice currentDevice] systemVersion],
+//        _tracerJSON = @{
+//            @"guid": [YUtil hexGUID:_runtimeGuid],
+//            @"attrs": [YUtil keyValueArrayFromDictionary:@{
+//                @"lightstep.tracer_platform": @"ios",
+//                @"lightstep.tracer_platform_version": [[UIDevice currentDevice] systemVersion],
 //                @"lightstep.tracer_version": LS_TRACER_VERSION,
-                @"lightstep.component_name": componentName,
-                @"device_model": [[UIDevice currentDevice] model]
-            }]
-        };
+//                @"lightstep.component_name": componentName,
+//                @"device_model": [[UIDevice currentDevice] model]
+//            }]
+//        };
 
         [self _forkFlushLoop:flushIntervalSeconds];
     }
@@ -119,7 +125,7 @@ NSString *const YErrorDomain = @"com.lightstep";
     NSMutableArray<OTReference*>* refs = [NSMutableArray<OTReference*> new];
     if (references != nil) {
         for (OTReference *ref in references) {
-            if (ref != nil &&
+            if (ref != nil && ref.referencedContext &&
                 ([ref.type isEqualToString:OTReferenceChildOf] || [ref.type isEqualToString:OTReferenceFollowsFrom])) {
                 [refs addObject:ref];
             }
@@ -251,6 +257,16 @@ static NSString *kBasicTracerBaggagePrefix = @"ot-baggage-";
     }
 }
 
+- (void)Finish;
+{
+    if( self.traceid )
+    {
+        NSDictionary* reportdic = @{@"traceid":self.traceid,@"spans":[self.pendingJSONSpans copy]};
+        NSString* str = [YUtil objectToJSONString:reportdic maxLength:NSUIntegerMax];
+        [[HiidoSDK sharedObject] reportStatisticContent:@"aomitraceclient" dict:@{@"tracedata":str}];
+    }
+}
+
 // Establish the m_flushTimer ticker.
 - (void)_forkFlushLoop:(NSUInteger)flushIntervalSeconds {
     @synchronized(self) {
@@ -315,7 +331,7 @@ static NSString *kBasicTracerBaggagePrefix = @"ot-baggage-";
         // https://github.com/lightstep/lightstep-tracer-go/blob/40cbd138e6901f0dafdd0cccabb6fc7c5a716efb/lightstep_thrift/ttypes.go#L2586
         reqJSON = [NSMutableDictionary dictionary];
         reqJSON[@"timestamp_offset_micros"] = @(self.clockState.offsetMicros);
-        reqJSON[@"runtime"] = self.tracerJSON;
+//        reqJSON[@"runtime"] = self.tracerJSON;
         reqJSON[@"span_records"] = self.pendingJSONSpans;
         reqJSON[@"oldest_micros"] = @([self.lastFlush toMicros]);
         reqJSON[@"youngest_micros"] = @([now toMicros]);

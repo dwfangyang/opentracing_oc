@@ -29,6 +29,7 @@
     [parentspan logEvent:@"query_complete" payload:@{@"main_thread":@([NSThread isMainThread])}];
     [parentspan logEvent:@"ui_update" payload:@{@"main_thread":@([NSThread isMainThread])}];
     [parentspan finish];
+    [tracer Finish];
 }
 
 

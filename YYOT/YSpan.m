@@ -82,6 +82,7 @@
         if ( traceId == nil )
         {
             traceId = [YUtil generateGUID];
+            [tracer setValue:traceId forKey:@"traceid"];
         }
         NSString* spanId = [YUtil generateGUID];
         _context = [[YSpanContext alloc] initWithTraceId:traceId spanId:spanId baggage:baggage];
@@ -120,8 +121,8 @@
         fields[@"event"] = eventName;
     }
     if (payload != nil) {
-//        NSString *payloadJSON = [YUtil objectToJSONString:payload maxLength:[self.tracer maxPayloadJSONLength]];
-        fields[@"value"] = payload;
+        NSString *payloadJSON = [YUtil objectToJSONString:payload maxLength:[self.tracer maxPayloadJSONLength]];
+        fields[@"value"] = payloadJSON;
     }
     [self _appendLog:[[YLog alloc] initWithTimestamp:timestamp fields:fields]];
 }
@@ -228,7 +229,7 @@
     if( self.references.count )
     {
         NSMutableArray* refs = [NSMutableArray new];
-        for ( OTReference* ref in refs ) {
+        for ( OTReference* ref in self.references ) {
             YSpanContext* context = (YSpanContext*)ref.referencedContext;
             [refs addObject:@{@"spanId":context.spanId,@"traceId":context.traceId,@"reftype":([ref.type isEqualToString:OTReferenceChildOf]?@"CHILD_OF":@"FOLLOWS_FROM")}];
         }
